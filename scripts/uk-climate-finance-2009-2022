@@ -1,0 +1,75 @@
+install.packages("tidyverse")
+library(ggplot2)	# for graphs
+library(dplyr)		# for collapsing/merging data easily
+library(gridExtra)	# arranging graphs
+library(WDI)		# downloading world bank data
+library(ggpubr)		# arranging graphs
+library(countrycode)	# merging on iso codes
+library(tidyr)		# some tidy up functions
+library(data.table)	# much faster than base r
+library(openxlsx)		# flexible for reading/writing excel files
+
+crs_2022 = read.table("CRS 2022 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2021 = read.table("CRS 2021 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2020 = read.table("CRS 2020 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2019 = read.table("CRS 2019 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2018 = read.table("CRS 2018 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2017 = read.table("CRS 2017 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2016 = read.table("CRS 2016 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2015 = read.table("CRS 2015 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2014 = read.table("CRS 2014 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2013 = read.table("CRS 2013 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2012 = read.table("CRS 2012 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2011 = read.table("CRS 2011 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2010 = read.table("CRS 2010 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+crs_2009 = read.table("CRS 2009 data.txt",sep="|",header=T,quote="",comment.char="",check.names=F)[ ,c(1,4,6,12,14,18,21,22,26,27,28,46,47,49,51,61,65,77,78)]
+
+crs_uk_climate_data_2009to2022_list = list(
+  crs_2022,
+  crs_2021,
+  crs_2020,
+  crs_2019,
+  crs_2018,
+  crs_2017,
+  crs_2016,
+  crs_2015,
+  crs_2014,
+  crs_2013,
+  crs_2012,
+  crs_2011,
+  crs_2010,
+  crs_2009
+)
+
+crs_uk_climate_data_2009to2022 <- bind_rows(crs_uk_climate_data_2009to2022_list)
+
+crs_uk_climate_data_2009to2022 <- crs_uk_climate_data_2009to2022 %>%
+  rename_with(~ gsub('"', '', .))
+
+crs_uk_climate_data_2009to2022 = crs_uk_climate_data_2009to2022 %>%
+  filter(DonorName == "United Kingdom")
+
+crs_uk_climate_data_2009to2022 <- crs_uk_climate_data_2009to2022 %>%
+  mutate(
+    ClimateMitigation = replace_na(ClimateMitigation, 0),
+    ClimateAdaptation = replace_na(ClimateAdaptation, 0),
+    USD_Commitment_Defl = replace_na(USD_Commitment_Defl, 0),
+    USD_Disbursement_Defl = replace_na(USD_Disbursement_Defl, 0),
+    USD_Received_Defl = replace_na(USD_Received_Defl, 0),
+    Environment = replace_na(Environment, 0),
+  )
+
+crs_uk_climate_data_2009to2022 <- crs_uk_climate_data_2009to2022 %>%
+  mutate(
+    mitig = paste0("M", ClimateMitigation),
+    adapt = paste0("A", ClimateAdaptation),
+    focus = paste(mitig, adapt, sep = "-")
+  )
+
+crs_uk_climate_data_2009to2022 <- crs_uk_climate_data_2009to2022 %>%
+  mutate(
+    Net_USD_Disbursement_Defl = USD_Disbursement_Defl - USD_Received_Defl,
+    Net_USD_Disbursement_Defl = if_else(Finance_t %in% c(610, 620), 0, Net_USD_Disbursement_Defl),
+  )
+
+write.csv(crs_uk_climate_data_2009to2022, "CRS UK Total and Climate Data, 2009-2022")
